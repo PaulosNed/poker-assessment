@@ -1,0 +1,16 @@
+[project]
+name = "poker-assessment-server"
+version = "0.1.0"
+description = "Poker assessment API"
+requires-python = ">=3.13,<3.14"
+dependencies = ["fastapi (>=0.142.2,<0.143.0)", "uvicorn (>=0.54.0,<0.55.0)"]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.1.1"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
