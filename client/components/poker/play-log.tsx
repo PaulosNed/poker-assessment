@@ -249,8 +249,8 @@ export function PlayLog({ events }: { events: GameEvent[] }) {
   }, [events]);
 
   return (
-    <Card className="gap-0 bg-white pb-0">
-      <CardHeader className="border-b border-slate-200 pb-3">
+    <Card className="h-full min-h-0 gap-0 bg-white pb-0">
+      <CardHeader className="shrink-0 border-b border-slate-200 pb-3">
         <CardTitle className="flex items-center gap-2 text-sm text-slate-800">
           <ListOrdered className="size-4 text-slate-400" aria-hidden="true" />
           <h2>Play log</h2>
@@ -259,13 +259,13 @@ export function PlayLog({ events }: { events: GameEvent[] }) {
           Cards, decisions, and results. Every hand, in order.
         </p>
       </CardHeader>
-      <CardContent className="px-0 pt-0">
+      <CardContent className="relative min-h-0 flex-1 px-0 pt-0">
         <ScrollArea
           ref={scrollRoot}
-          className="h-96 rounded-b-xl bg-slate-50/70 sm:h-[28rem]"
+          className="h-full rounded-b-xl bg-slate-50/70"
         >
           {events.length === 0 ? (
-            <div className="flex h-96 flex-col items-center justify-center px-6 text-center sm:h-[28rem]">
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
               <p className="text-sm font-medium text-slate-700">
                 Ready for the first hand
               </p>

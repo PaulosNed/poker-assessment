@@ -177,9 +177,9 @@ export function HandHistory({
     <section
       aria-labelledby="history-heading"
       aria-busy={loading}
-      className="min-w-0"
+      className="min-w-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col"
     >
-      <div className="mb-5 flex items-start justify-between gap-3">
+      <div className="mb-5 flex shrink-0 items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
             <History
@@ -237,7 +237,7 @@ export function HandHistory({
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert variant="destructive" className="mb-4 shrink-0">
           <AlertCircle />
           <AlertTitle>History couldn’t load</AlertTitle>
           <AlertDescription>
@@ -293,7 +293,7 @@ export function HandHistory({
       )}
 
       {hands.length > 0 && (
-        <ScrollArea className="h-[min(900px,80vh)] pr-2">
+        <ScrollArea className="h-[min(900px,80vh)] pr-2 lg:h-0 lg:min-h-0 lg:flex-1">
           <div className="space-y-4 p-px pb-3">
             {hands.map((hand) => (
               <HistoryHand key={hand.id} hand={hand} />

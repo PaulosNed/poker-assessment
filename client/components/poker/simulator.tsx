@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, LoaderCircle, Spade } from "lucide-react";
+import { AlertCircle, LoaderCircle } from "lucide-react";
 
 import { ActionControls } from "@/components/poker/action-controls";
 import { HandHistory } from "@/components/poker/hand-history";
@@ -12,13 +12,11 @@ import { SetupControls } from "@/components/poker/setup-controls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSimulator } from "@/lib/use-simulator";
 
 export function Simulator() {
   const [appliedStack, setAppliedStack] = useState(10000);
-  const [showTable, setShowTable] = useState(false);
   const {
     game,
     gameError,
@@ -36,63 +34,17 @@ export function Simulator() {
     game?.status === "hand_complete" || game?.status === "game_over";
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-              <Spade
-                className="size-5 fill-primary/15 text-primary"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-lg font-semibold leading-none tracking-tight">
-                River<span className="text-primary">.</span>
-              </p>
-              <p className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-                Hand simulator
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:inline">
-              No-limit Texas Hold’em
-            </span>
-            <Badge
-              variant="outline"
-              className="ml-1 px-2.5 py-1 text-[10px] font-normal tabular-nums text-muted-foreground"
-            >
-              Blinds{" "}
-              <span className="font-medium text-foreground">20 / 40</span>
-            </Badge>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 pb-8 pt-7 sm:px-8 sm:pt-9">
-        <div className="mb-7 flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Your table. Your decisions.
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Control every seat, one hand at a time.
-            </p>
-          </div>
-          <p className="hidden items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground md:flex">
-            6 seats <span className="px-1">/</span> No ante{" "}
-          </p>
-        </div>
-
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)] lg:gap-8 xl:gap-10">
-          <div className="min-w-0 space-y-5">
-            <SetupControls
-              appliedStack={appliedStack}
-              active={Boolean(game)}
-              onApply={setAppliedStack}
-              onStart={() => start(appliedStack)}
-            />
+    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-8 sm:py-7">
+      <h1 className="sr-only">Poker hand simulator</h1>
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)] lg:gap-8 xl:gap-10">
+        <div className="min-w-0 space-y-5">
+          <SetupControls
+            appliedStack={appliedStack}
+            active={Boolean(game)}
+            onApply={setAppliedStack}
+            onStart={() => start(appliedStack)}
+          />
+          <Tabs defaultValue="play-log" className="gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3 px-1">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <Badge variant="outline" className="bg-white">
@@ -115,26 +67,23 @@ export function Simulator() {
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2">
-                <Checkbox
-                  id="show-table"
-                  checked={showTable}
-                  onCheckedChange={setShowTable}
-                  aria-controls="table-view"
-                />
-                <Label
-                  htmlFor="show-table"
-                  className="cursor-pointer text-xs font-medium"
+              <TabsList
+                aria-label="Simulation view"
+                className="ml-auto h-9 border bg-white"
+              >
+                <TabsTrigger
+                  value="play-log"
+                  className="px-3 text-xs data-active:bg-primary/10 data-active:text-primary"
                 >
-                  Show table
-                </Label>
-                <span className="hidden text-[10px] text-muted-foreground sm:inline">
-                  Cards & stacks
-                </span>
-              </div>
-            </div>
-            <div id="table-view" hidden={!showTable}>
-              <LiveTable game={game} appliedStack={appliedStack} />
+                  Play log
+                </TabsTrigger>
+                <TabsTrigger
+                  value="game-ui"
+                  className="px-3 text-xs data-active:bg-primary/10 data-active:text-primary"
+                >
+                  Game UI
+                </TabsTrigger>
+              </TabsList>
             </div>
 
             {gameError && (
@@ -188,32 +137,43 @@ export function Simulator() {
               </Alert>
             )}
 
-            <PlayLog events={game?.events ?? []} />
-            {handFinished && game ? (
-              <HandResult
-                key={game.submissionId}
-                game={game}
-                onContinue={continueToNextHand}
-                onReset={() => start(appliedStack)}
-              />
-            ) : (
-              <ActionControls game={game} onAction={act} />
-            )}
-          </div>
-          <aside className="min-w-0 border-t border-border/70 pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0 xl:pl-10">
+            <div className="relative">
+              <TabsContent value="play-log" className="absolute inset-0">
+                <PlayLog events={game?.events ?? []} />
+              </TabsContent>
+              {/* Keep the table's natural height while its inactive panel is invisible and inert. */}
+              <TabsContent
+                value="game-ui"
+                keepMounted
+                hidden={false}
+                className="data-hidden:invisible"
+              >
+                <LiveTable game={game} appliedStack={appliedStack} />
+              </TabsContent>
+            </div>
+          </Tabs>
+          {handFinished && game ? (
+            <HandResult
+              key={game.submissionId}
+              game={game}
+              onContinue={continueToNextHand}
+              onReset={() => start(appliedStack)}
+            />
+          ) : (
+            <ActionControls game={game} onAction={act} />
+          )}
+        </div>
+        <aside className="min-w-0 border-t border-border/70 pt-6 lg:relative lg:min-h-0 lg:self-stretch lg:border-l lg:border-t-0 lg:pt-0">
+          <div className="lg:absolute lg:inset-0 lg:pl-8 xl:pl-10">
             <HandHistory
               hands={hands}
               loading={historyLoading}
               error={historyError}
               onRefresh={refreshHistory}
             />
-          </aside>
-        </div>
-        <footer className="mt-8 border-t border-border/60 pt-5 text-[11px] leading-relaxed text-muted-foreground/70">
-          Live games reset when you refresh the page. Completed hands stay in
-          your history.
-        </footer>
-      </main>
-    </div>
+          </div>
+        </aside>
+      </div>
+    </main>
   );
 }
