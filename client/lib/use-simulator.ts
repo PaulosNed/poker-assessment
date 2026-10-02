@@ -7,6 +7,7 @@ import {
   applySettlement,
   createGame,
   shuffleDeck,
+  startNextHand,
   toSubmission,
   type GameState,
   type HandSubmission,
@@ -46,6 +47,7 @@ export function useSimulator() {
 
   const loadHistory = useCallback(() => {
     const request = ++historyRequest.current;
+    const indicatorUntil = performance.now() + 600;
     return fetchHands()
       .then((saved) => {
         if (request !== historyRequest.current) return;
@@ -57,7 +59,11 @@ export function useSimulator() {
         if (request !== historyRequest.current) return;
         setHistoryError("Saved hands could not be loaded. Please try again.");
       })
-      .finally(() => {
+      .finally(async () => {
+        // Keep fast refreshes visible; incoming results are shown immediately.
+        const remaining = indicatorUntil - performance.now();
+        if (remaining > 0)
+          await new Promise((resolve) => setTimeout(resolve, remaining));
         if (request === historyRequest.current) setHistoryLoading(false);
       });
   }, []);
@@ -111,11 +117,10 @@ export function useSimulator() {
     if (hand.generation !== generation.current) return;
 
     try {
-      const next = applySettlement(hand.game, saved, nextHandOptions());
+      const next = applySettlement(hand.game, saved);
       pending.current = null;
       setSaveState(null);
       publish(next);
-      beginSettlement(next);
     } catch (error) {
       console.error("Could not apply the saved hand's settlement.", error);
       setSaveState({
@@ -174,6 +179,19 @@ export function useSimulator() {
     if (pending.current && saveState?.retryable) void settle(pending.current);
   }
 
+  function continueToNextHand() {
+    if (currentGame.current?.status !== "hand_complete") return;
+    try {
+      const next = startNextHand(currentGame.current, nextHandOptions());
+      setGameError(null);
+      publish(next);
+      beginSettlement(next);
+    } catch (error) {
+      console.error("Could not start the next hand.", error);
+      setGameError("The next hand could not be started. Please try again.");
+    }
+  }
+
   return {
     game,
     gameError,
@@ -185,5 +203,6 @@ export function useSimulator() {
     act,
     retrySave,
     refreshHistory,
+    continueToNextHand,
   };
 }

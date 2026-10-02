@@ -1,4 +1,4 @@
-import { AlertCircle, History, RefreshCw } from "lucide-react";
+import { AlertCircle, History, LoaderCircle, RefreshCw } from "lucide-react";
 
 import { PlayingCard } from "@/components/poker/playing-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { compactHistory, getPositions } from "@/domain";
 import type { SavedHand } from "@/domain/types";
+import { chipChange, playerName, PLAYER_COLORS } from "@/lib/poker-display";
 import { cn } from "@/lib/utils";
 
 interface HandHistoryProps {
@@ -25,7 +26,7 @@ function HistoryHand({ hand }: { hand: SavedHand }) {
   );
 
   return (
-    <Card size="sm" className="gap-3 bg-card/70">
+    <Card size="sm" className="gap-3 bg-white ring-slate-200">
       <CardHeader className="gap-2">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-xs font-medium">
@@ -57,7 +58,7 @@ function HistoryHand({ hand }: { hand: SavedHand }) {
             aria-label="Players, starting stacks, and net results"
           >
             <thead>
-              <tr className="border-b border-border/70 text-[10px] text-muted-foreground">
+              <tr className="border-b border-slate-200 text-[10px] text-muted-foreground">
                 <th scope="col" className="pb-2 text-left font-normal">
                   Player / position
                 </th>
@@ -73,10 +74,19 @@ function HistoryHand({ hand }: { hand: SavedHand }) {
               {hand.players.map((player) => (
                 <tr
                   key={player.player}
-                  className="border-b border-border/40 last:border-0"
+                  className="border-b border-slate-100 last:border-0"
                 >
                   <td className="py-2.5 align-middle">
-                    <p className="font-medium">Player {player.player}</p>
+                    <p className="flex items-center gap-1.5 font-medium">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "size-1.5 shrink-0 rounded-full",
+                          PLAYER_COLORS[player.player].dot,
+                        )}
+                      />
+                      {playerName(player.player)}
+                    </p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {player.player === positions.dealer && (
                         <Badge
@@ -116,16 +126,15 @@ function HistoryHand({ hand }: { hand: SavedHand }) {
                       {player.startingStack.toLocaleString("en-US")}
                     </p>
                     <p
-                      aria-label={`Net result: ${player.winLoss > 0 ? "+" : ""}${player.winLoss}`}
+                      aria-label={`Net result: ${chipChange(player.winLoss)}`}
                       className={cn(
                         "mt-1 font-mono text-xs font-medium",
-                        player.winLoss > 0 && "text-primary",
+                        player.winLoss > 0 && "text-emerald-700",
                         player.winLoss < 0 && "text-destructive",
                         player.winLoss === 0 && "text-muted-foreground",
                       )}
                     >
-                      {player.winLoss > 0 ? "+" : ""}
-                      {player.winLoss.toLocaleString("en-US")}
+                      {chipChange(player.winLoss)}
                     </p>
                   </td>
                 </tr>
@@ -145,11 +154,11 @@ function HistoryHand({ hand }: { hand: SavedHand }) {
             </div>
           </div>
         )}
-        <div className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             Action sequence
           </p>
-          <p className="break-all font-mono text-[11px] leading-relaxed text-foreground/80">
+          <p className="break-all font-mono text-[11px] leading-relaxed text-slate-700">
             {compactHistory(hand)}
           </p>
         </div>
@@ -165,7 +174,11 @@ export function HandHistory({
   onRefresh,
 }: HandHistoryProps) {
   return (
-    <section aria-labelledby="history-heading" className="min-w-0">
+    <section
+      aria-labelledby="history-heading"
+      aria-busy={loading}
+      className="min-w-0"
+    >
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
@@ -188,22 +201,38 @@ export function HandHistory({
               </Badge>
             )}
           </div>
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            Completed hands, newest first.
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-1.5 text-xs text-muted-foreground"
+          >
+            {loading
+              ? hands.length > 0
+                ? "Refreshing saved hands…"
+                : "Loading saved hands…"
+              : "Completed hands, newest first."}
           </p>
         </div>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          variant="outline"
+          size="sm"
           onClick={onRefresh}
           disabled={loading}
-          aria-label="Refresh hand history"
+          aria-label={
+            loading ? "Refreshing hand history" : "Refresh hand history"
+          }
+          aria-busy={loading}
           title="Refresh hand history"
         >
-          <RefreshCw
-            className={cn("size-3.5", loading && "animate-spin")}
-            aria-hidden="true"
-          />
+          {loading ? (
+            <LoaderCircle
+              className="size-3.5 animate-spin"
+              aria-hidden="true"
+            />
+          ) : (
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+          )}
+          {loading ? "Refreshing…" : "Refresh"}
         </Button>
       </div>
 
@@ -246,11 +275,11 @@ export function HandHistory({
       )}
 
       {!loading && !error && hands.length === 0 && (
-        <Card className="bg-card/50">
+        <Card className="bg-white ring-slate-200">
           <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
-            <div className="mb-4 flex size-11 items-center justify-center rounded-xl border border-border bg-background/50">
+            <div className="mb-4 flex size-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
               <History
-                className="size-5 text-muted-foreground/60"
+                className="size-5 text-muted-foreground"
                 aria-hidden="true"
               />
             </div>

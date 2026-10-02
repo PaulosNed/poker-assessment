@@ -31,7 +31,7 @@ export function PlayingCard({
       <span
         aria-label="Undealt card"
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-md border border-dashed border-white/15 bg-white/2 text-muted-foreground/40",
+          "inline-flex shrink-0 items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-slate-400",
           size === "sm" ? "h-9 w-7" : "h-16 w-11 sm:h-18 sm:w-13",
           className,
         )}
@@ -53,8 +53,8 @@ export function PlayingCard({
       aria-label={`${ranks[rank] ?? rank} of ${suit.name}`}
       title={card}
       className={cn(
-        "inline-flex shrink-0 flex-col justify-between rounded-md border border-white/60 bg-stone-100 font-semibold shadow-sm select-none",
-        isRed ? "text-rose-700" : "text-zinc-900",
+        "inline-flex shrink-0 flex-col justify-between rounded-md border border-slate-300 bg-white font-semibold shadow-sm select-none",
+        isRed ? "text-rose-700" : "text-slate-900",
         size === "sm"
           ? "h-9 w-7 px-1 py-0.5 text-xs leading-none"
           : "h-16 w-11 p-1.5 text-lg leading-none sm:h-18 sm:w-13 sm:text-xl",

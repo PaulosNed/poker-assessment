@@ -104,7 +104,7 @@ export type GameEventDetail =
 export type GameEvent = GameEventDetail & { handNumber: number };
 
 export interface GameState {
-  status: "playing" | "awaiting_settlement" | "game_over";
+  status: "playing" | "awaiting_settlement" | "hand_complete" | "game_over";
   handNumber: number;
   submissionId: string;
   players: LivePlayer[];

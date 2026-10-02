@@ -1,20 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ArrowUpRight, LoaderCircle, Spade } from "lucide-react";
+import { AlertCircle, LoaderCircle, Spade } from "lucide-react";
 
 import { ActionControls } from "@/components/poker/action-controls";
 import { HandHistory } from "@/components/poker/hand-history";
+import { HandResult } from "@/components/poker/hand-result";
 import { LiveTable } from "@/components/poker/live-table";
 import { PlayLog } from "@/components/poker/play-log";
 import { SetupControls } from "@/components/poker/setup-controls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useSimulator } from "@/lib/use-simulator";
 
 export function Simulator() {
   const [appliedStack, setAppliedStack] = useState(10000);
+  const [showTable, setShowTable] = useState(false);
   const {
     game,
     gameError,
@@ -26,11 +30,14 @@ export function Simulator() {
     act,
     retrySave,
     refreshHistory,
+    continueToNextHand,
   } = useSimulator();
+  const handFinished =
+    game?.status === "hand_complete" || game?.status === "game_over";
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border/70">
+      <header className="border-b border-border bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-8">
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
@@ -73,9 +80,8 @@ export function Simulator() {
               Control every seat, one hand at a time.
             </p>
           </div>
-          <p className="hidden items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground/60 md:flex">
+          <p className="hidden items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground md:flex">
             6 seats <span className="px-1">/</span> No ante{" "}
-            <ArrowUpRight className="ml-1 size-3.5" aria-hidden="true" />
           </p>
         </div>
 
@@ -87,7 +93,49 @@ export function Simulator() {
               onApply={setAppliedStack}
               onStart={() => start(appliedStack)}
             />
-            <LiveTable game={game} appliedStack={appliedStack} />
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant="outline" className="bg-white">
+                  {game ? `Hand ${game.handNumber}` : "Ready to start"}
+                </Badge>
+                {game && (
+                  <>
+                    <span className="text-muted-foreground">
+                      {handFinished
+                        ? game.status === "game_over"
+                          ? "Game over"
+                          : "Complete"
+                        : game.street}
+                    </span>
+                    {!handFinished && (
+                      <span className="border-l pl-2 font-medium tabular-nums">
+                        Pot {game.pot.toLocaleString("en-US")}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2">
+                <Checkbox
+                  id="show-table"
+                  checked={showTable}
+                  onCheckedChange={setShowTable}
+                  aria-controls="table-view"
+                />
+                <Label
+                  htmlFor="show-table"
+                  className="cursor-pointer text-xs font-medium"
+                >
+                  Show table
+                </Label>
+                <span className="hidden text-[10px] text-muted-foreground sm:inline">
+                  Cards & stacks
+                </span>
+              </div>
+            </div>
+            <div id="table-view" hidden={!showTable}>
+              <LiveTable game={game} appliedStack={appliedStack} />
+            </div>
 
             {gameError && (
               <Alert variant="destructive">
@@ -110,7 +158,7 @@ export function Simulator() {
                     Calculating and saving this hand…
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    The next hand begins once the results are ready.
+                    Your results will appear here before you continue.
                   </p>
                 </div>
               </div>
@@ -141,9 +189,16 @@ export function Simulator() {
             )}
 
             <PlayLog events={game?.events ?? []} />
-            <div className="bottom-3 z-10 sm:sticky">
+            {handFinished && game ? (
+              <HandResult
+                key={game.submissionId}
+                game={game}
+                onContinue={continueToNextHand}
+                onReset={() => start(appliedStack)}
+              />
+            ) : (
               <ActionControls game={game} onAction={act} />
-            </div>
+            )}
           </div>
           <aside className="min-w-0 border-t border-border/70 pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0 xl:pl-10">
             <HandHistory

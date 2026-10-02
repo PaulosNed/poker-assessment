@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import {
   type GameState,
   type PlayerAction,
 } from "@/domain";
+import { playerName, PLAYER_COLORS } from "@/lib/poker-display";
+import { cn } from "@/lib/utils";
 
 function WagerControl({
   type,
@@ -67,7 +69,7 @@ export function ActionControls({
   const actionKey = `${game?.submissionId}:${game?.actions.length}`;
 
   return (
-    <Card className="gap-0 border-primary/15 bg-card/95 py-4 shadow-lg shadow-black/20 backdrop-blur-sm">
+    <Card className="gap-0 bg-card/95 py-4 shadow-sm shadow-emerald-950/5 backdrop-blur-sm">
       <CardContent className="space-y-3">
         <div className="flex min-h-5 flex-wrap items-center justify-between gap-2">
           <p
@@ -76,8 +78,14 @@ export function ActionControls({
           >
             {actor ? (
               <>
-                <ArrowRight className="size-4 text-primary" />
-                Player {actor.player} to act
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "size-2.5 rounded-full",
+                    PLAYER_COLORS[actor.player].dot,
+                  )}
+                />
+                {playerName(actor.player)} to act
               </>
             ) : (
               "Actions"
@@ -86,11 +94,13 @@ export function ActionControls({
           <p className="text-[11px] text-muted-foreground">
             {actor
               ? `Available: ${actor.currentStack.toLocaleString("en-US")} chips`
-              : game?.status === "game_over"
-                ? "Reset to start a new game"
-                : game
-                  ? "Waiting for the final result"
-                  : "Start a game to take a seat"}
+              : game?.status === "hand_complete"
+                ? "Choose Next hand to continue"
+                : game?.status === "game_over"
+                  ? "Reset to start a new game"
+                  : game
+                    ? "Waiting for the final result"
+                    : "Start a game to take a seat"}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

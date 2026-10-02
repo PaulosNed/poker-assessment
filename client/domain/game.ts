@@ -486,7 +486,6 @@ function settlementStacks(game: GameState, saved: SavedHand): number[] {
 export function applySettlement(
   game: GameState,
   saved: SavedHand,
-  options: HandOptions,
 ): GameState {
   const stacks = settlementStacks(game, saved);
   const settled = copyGame(game);
@@ -500,21 +499,32 @@ export function applySettlement(
     })),
   });
   const active = SEATS.filter((seat) => stacks[seat] > 0);
-  if (active.length === 1) {
-    settled.status = "game_over";
-    settled.pot = 0;
-    for (const player of settled.players) {
-      player.currentStack = stacks[player.player];
-      player.eliminated = stacks[player.player] === 0;
-    }
-    addEvent(settled, { type: "game_over", winner: active[0] });
-    return settled;
+  settled.status = active.length === 1 ? "game_over" : "hand_complete";
+  settled.pot = 0;
+  for (const player of settled.players) {
+    player.currentStack = stacks[player.player];
+    player.eliminated = stacks[player.player] === 0;
   }
+  if (active.length === 1) {
+    addEvent(settled, { type: "game_over", winner: active[0] });
+  }
+  return settled;
+}
+
+export function startNextHand(
+  game: GameState,
+  options: HandOptions,
+): GameState {
+  if (game.status !== "hand_complete") {
+    throw new Error("The next hand can only start after this hand is saved.");
+  }
+  const stacks = game.players.map((player) => player.currentStack);
+  const active = SEATS.filter((seat) => stacks[seat] > 0);
   const dealer = seatsAfter(game.dealer, active)[0];
   const next = createHand(stacks, dealer, {
     ...options,
     handNumber: game.handNumber + 1,
   });
-  next.events = [...settled.events, ...next.events];
+  next.events = [...game.events, ...next.events];
   return next;
 }

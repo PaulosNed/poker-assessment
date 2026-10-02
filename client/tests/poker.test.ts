@@ -10,6 +10,7 @@ import {
   legalActions,
   MAX_STARTING_STACK,
   shuffleDeck,
+  startNextHand,
   stepAmount,
   toSubmission,
   type Card,
@@ -386,7 +387,7 @@ describe("live poker hands", () => {
 });
 
 describe("settlement and the next hand", () => {
-  it("waits for settlement, carries the authoritative balances and rotates the dealer", () => {
+  it("keeps the saved hand visible and carries balances only when the next hand starts", () => {
     let game = createGame(1000, options());
     for (const seat of [3, 4, 5, 0, 1] as Seat[]) {
       expectActor(game, seat);
@@ -400,11 +401,32 @@ describe("settlement and the next hand", () => {
     expect(payload.submissionId).toBe(FIRST_SUBMISSION);
     expect(payload.communityCards).toEqual([]);
 
-    const next = applySettlement(
+    const settled = applySettlement(
       game,
       settlement(game, { 0: 0, 1: -20, 2: 20, 3: 0, 4: 0, 5: 0 }),
-      { deck: ORDERED_DECK, submissionId: NEXT_SUBMISSION },
     );
+    expect(settled.status).toBe("hand_complete");
+    expect(settled.actor).toBeNull();
+    expect(settled.pot).toBe(0);
+    expect(settled.dealer).toBe(0);
+    expect(settled.handNumber).toBe(1);
+    expect(settled.submissionId).toBe(FIRST_SUBMISSION);
+    expect(settled.players.map((player) => player.currentStack)).toEqual([
+      1000, 980, 1020, 1000, 1000, 1000,
+    ]);
+    expect(settled.players.map((player) => player.cards)).toEqual(
+      game.players.map((player) => player.cards),
+    );
+    expect(settled.communityCards).toEqual(game.communityCards);
+    expect(settled.deck).toEqual(game.deck);
+    expect(settled.actions).toEqual(game.actions);
+    expect(settled.events.at(-1)).toMatchObject({ type: "settled" });
+    expectCardConservation(settled);
+
+    const next = startNextHand(settled, {
+      deck: ORDERED_DECK,
+      submissionId: NEXT_SUBMISSION,
+    });
     expect(next.players.map((player) => player.startingStack)).toEqual([
       1000, 980, 1020, 1000, 1000, 1000,
     ]);
@@ -422,6 +444,7 @@ describe("settlement and the next hand", () => {
     ).toHaveLength(2);
     expect(game.submissionId).toBe(FIRST_SUBMISSION);
     expect(game.status).toBe("awaiting_settlement");
+    expect(settled.status).toBe("hand_complete");
   });
 
   it("skips eliminated seats, transitions to heads-up, and ends the game at one survivor", () => {
@@ -442,8 +465,25 @@ describe("settlement and the next hand", () => {
     game = applySettlement(
       game,
       settlement(game, { 0: -40, 2: 140, 5: -100 }),
-      { deck: headsUpDeck, submissionId: NEXT_SUBMISSION },
     );
+    expect(game.status).toBe("hand_complete");
+    expect(game.players.map((player) => player.currentStack)).toEqual([
+      0, 0, 240, 0, 0, 50,
+    ]);
+    expect(game.dealer).toBe(5);
+    expect(game.players[0]).toMatchObject({
+      eliminated: true,
+      cards: ["Qs", "Qh"],
+      currentStack: 0,
+    });
+    expect(game.communityCards).toEqual(["2c", "3d", "7h", "8s", "9c"]);
+    expect(game.pot).toBe(0);
+    expectCardConservation(game);
+
+    game = startNextHand(game, {
+      deck: headsUpDeck,
+      submissionId: NEXT_SUBMISSION,
+    });
     expect(game.players.map((player) => player.startingStack)).toEqual([
       0, 0, 240, 0, 0, 50,
     ]);
@@ -467,7 +507,6 @@ describe("settlement and the next hand", () => {
     const finished = applySettlement(
       game,
       settlement(game, { 2: 50, 5: -50 }),
-      { deck: ORDERED_DECK, submissionId: FIRST_SUBMISSION },
     );
     expect(finished.status).toBe("game_over");
     expect(finished.actor).toBeNull();
@@ -478,6 +517,7 @@ describe("settlement and the next hand", () => {
       type: "game_over",
       winner: 2,
     });
+    expect(() => startNextHand(finished, options())).toThrow();
   });
 
   it("includes board-only runout streets in compact history and keeps Allin amount-free", () => {
@@ -577,14 +617,31 @@ describe("invalid operations", () => {
     expect(() => applyAction(cumulative, { type: "Allin" })).toThrow();
   });
 
-  it("rejects actions after completion and refuses to submit an unfinished hand", () => {
-    let game = createGame(1000, options());
+  it("rejects actions after completion and premature or repeated hand transitions", () => {
+    const initial = createGame(1000, options());
+    let game = initial;
     expect(() => toSubmission(game)).toThrow();
+    expect(() => startNextHand(game, options())).toThrow();
     for (let index = 0; index < 5; index++) {
       game = applyAction(game, { type: "Fold" });
     }
     expect(game.status).toBe("awaiting_settlement");
     expect(() => applyAction(game, { type: "Check" })).toThrow();
     expect(() => applyAction(game, { type: "Fold" })).toThrow();
+    expect(() => startNextHand(game, options())).toThrow();
+
+    const saved = settlement(game, { 0: 0, 1: -20, 2: 20, 3: 0, 4: 0, 5: 0 });
+    expect(() => applySettlement(initial, saved)).toThrow();
+    const settled = applySettlement(game, saved);
+    expect(() => applyAction(settled, { type: "Check" })).toThrow();
+    expect(() => applySettlement(settled, saved)).toThrow();
+    expect(() => toSubmission(settled)).toThrow();
+
+    const next = startNextHand(settled, {
+      deck: ORDERED_DECK,
+      submissionId: NEXT_SUBMISSION,
+    });
+    expect(() => startNextHand(next, options())).toThrow();
+    expect(() => applySettlement(next, saved)).toThrow();
   });
 });

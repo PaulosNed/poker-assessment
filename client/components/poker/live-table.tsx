@@ -4,6 +4,7 @@ import { PlayingCard } from "@/components/poker/playing-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SEATS, type GameState } from "@/domain";
+import { playerName, PLAYER_COLORS } from "@/lib/poker-display";
 import { cn } from "@/lib/utils";
 
 export function LiveTable({
@@ -20,10 +21,20 @@ export function LiveTable({
   const activeCount = game?.players.filter(
     (player) => !player.eliminated,
   ).length;
+  const handFinished =
+    game?.status === "hand_complete" || game?.status === "game_over";
+  const completedEvent = game?.events.findLast(
+    (event) =>
+      event.type === "completed" && event.handNumber === game.handNumber,
+  );
+  const displayedPot =
+    handFinished && completedEvent?.type === "completed"
+      ? completedEvent.pot
+      : (game?.pot ?? 0);
 
   return (
     <section aria-label="Current simulation" className="space-y-4">
-      <Card className="overflow-hidden border-primary/15 bg-primary/3 py-5">
+      <Card className="overflow-hidden bg-white py-5 ring-slate-200">
         <CardContent>
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
@@ -33,11 +44,15 @@ export function LiveTable({
                 </h2>
                 <Badge
                   variant="outline"
-                  className="border-primary/20 text-primary"
+                  className="border-emerald-200 bg-emerald-50 text-emerald-700"
                 >
                   {game?.status === "game_over"
                     ? "Game over"
-                    : (game?.street ?? "Ready to play")}
+                    : game?.status === "hand_complete"
+                      ? "Hand complete"
+                      : game?.status === "awaiting_settlement"
+                        ? "Settling hand"
+                        : (game?.street ?? "Ready to play")}
                 </Badge>
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground">
@@ -48,13 +63,14 @@ export function LiveTable({
             </div>
             <div className="max-w-[60%] text-right">
               <p className="flex items-center justify-end gap-1.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                <Coins className="size-3" aria-hidden="true" /> Pot
+                <Coins className="size-3" aria-hidden="true" />
+                {handFinished ? "Final pot" : "Pot"}
               </p>
               <p
                 className="mt-1 break-all text-2xl font-semibold tracking-tight tabular-nums"
-                aria-label={`Pot ${game?.pot ?? 0}`}
+                aria-label={`${handFinished ? "Final pot" : "Pot"} ${displayedPot}`}
               >
-                {(game?.pot ?? 0).toLocaleString("en-US")}
+                {displayedPot.toLocaleString("en-US")}
               </p>
             </div>
           </div>
@@ -68,14 +84,14 @@ export function LiveTable({
                 card={game?.communityCards[index] ?? null}
               />
             ))}
-            <span className="ml-auto hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 sm:block">
+            <span className="ml-auto hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:block">
               Community board
             </span>
           </div>
           {winner && (
             <div
               role="status"
-              className="mt-5 flex items-center gap-3 border-t border-primary/15 pt-4"
+              className="mt-5 flex items-center gap-3 border-t border-emerald-100 pt-4"
             >
               <Trophy
                 className="size-5 shrink-0 text-primary"
@@ -83,7 +99,7 @@ export function LiveTable({
               />
               <div>
                 <p className="text-sm font-semibold text-primary">
-                  Player {winner.player} wins the game.
+                  {playerName(winner.player)} wins the game.
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   All {winner.currentStack.toLocaleString("en-US")} chips. Reset
@@ -110,18 +126,26 @@ export function LiveTable({
             <Card
               key={seat}
               size="sm"
-              aria-label={`Player ${seat}${acting ? ", to act" : ""}`}
+              aria-label={`${playerName(seat)}${acting ? ", to act" : ""}`}
               className={cn(
-                "gap-0 py-3 transition-colors",
-                acting &&
-                  "border-primary/50 bg-primary/7 ring-1 ring-primary/15",
-                player?.folded && "opacity-55",
-                eliminated && "bg-card/30 text-muted-foreground",
+                "gap-0 bg-white py-3 ring-slate-200 transition-colors",
+                acting && "bg-emerald-50 ring-2 ring-emerald-500",
+                player?.folded && "bg-slate-50 text-slate-500",
+                eliminated && "bg-slate-100 text-slate-500",
               )}
             >
               <CardContent className="space-y-2.5 px-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold">Player {seat}</span>
+                  <span className="flex items-center gap-1.5 text-xs font-semibold">
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "size-2 shrink-0 rounded-full",
+                        eliminated ? "bg-slate-400" : PLAYER_COLORS[seat].dot,
+                      )}
+                    />
+                    {playerName(seat)}
+                  </span>
                   {acting && (
                     <span className="text-[9px] font-semibold uppercase tracking-wide text-primary">
                       To act
@@ -130,7 +154,7 @@ export function LiveTable({
                 </div>
                 <p
                   className="break-all text-lg font-semibold tracking-tight tabular-nums"
-                  aria-label={`Player ${seat} stack ${player?.currentStack ?? appliedStack}`}
+                  aria-label={`${playerName(seat)} stack ${player?.currentStack ?? appliedStack}`}
                 >
                   {(player?.currentStack ?? appliedStack).toLocaleString(
                     "en-US",
@@ -141,7 +165,7 @@ export function LiveTable({
                 </p>
                 <div className="flex min-h-9 items-center gap-1.5">
                   {eliminated && !participating ? (
-                    <span className="text-xs text-muted-foreground/60">
+                    <span className="text-xs text-muted-foreground">
                       Out of the game
                     </span>
                   ) : (
@@ -157,7 +181,7 @@ export function LiveTable({
                     <span className="ml-auto text-right text-[10px] leading-relaxed text-muted-foreground">
                       In for
                       <br />
-                      <span className="font-mono text-foreground/75">
+                      <span className="font-mono text-slate-700">
                         {player.streetCommitted.toLocaleString("en-US")}
                       </span>
                     </span>
