@@ -40,7 +40,7 @@ export function Simulator() {
         <div className="min-w-0 space-y-5">
           <SetupControls
             appliedStack={appliedStack}
-            active={Boolean(game)}
+            active={game?.events.some((event) => event.type === "action") ?? false}
             onApply={setAppliedStack}
             onStart={() => start(appliedStack)}
           />
