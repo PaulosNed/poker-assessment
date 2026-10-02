@@ -7,6 +7,13 @@ RUN pip install poetry==2.5.1
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root
 
+FROM builder AS test
+RUN poetry install --with dev --no-root
+COPY main.py ./
+COPY src ./src
+COPY tests ./tests
+CMD ["poetry", "run", "pytest", "-q"]
+
 FROM python:3.13-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

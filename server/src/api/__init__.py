@@ -1,1 +1,4 @@
-"""HTTP routing, validation, response formatting, and application error translation."""
+"""
+HTTP routing, validation, response formatting, and application error
+translation.
+"""

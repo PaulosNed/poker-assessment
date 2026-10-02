@@ -5,5 +5,8 @@ router = APIRouter()
 
 @router.get("/health", tags=["health"])
 def health() -> dict[str, str]:
-    """Report API liveness; database readiness is checked separately by Compose."""
+    """
+    Report API liveness; database readiness is checked separately by
+    Compose.
+    """
     return {"status": "ok"}
